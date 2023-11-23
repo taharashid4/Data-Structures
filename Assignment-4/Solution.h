@@ -648,12 +648,12 @@ public:
         mTaskTree.insert(Task{ id, desc, prio, assigneeID});
     }
 
-    void assigneeHasTask(Node<Task>*& node, std::string assigneeID, bool& hasTask) {
+    void assigneeHasPendingTasks(Node<Task>*& node, std::string assigneeID, bool& hasTask) {
         if (node) {
-            assigneeHasTask(node->pLeft, assigneeID, hasTask);
-            if (node->mData.mAssigneeID == assigneeID)
+            assigneeHasPendingTasks(node->pLeft, assigneeID, hasTask);
+            if (node->mData.mAssigneeID == assigneeID && node->mData.bCompleted == false)
                 hasTask = true;
-            assigneeHasTask(node->pRight, assigneeID, hasTask);
+            assigneeHasPendingTasks(node->pRight, assigneeID, hasTask);
         }
     }
 
@@ -662,7 +662,8 @@ public:
             displayNoTasks(node->pLeft, out);
 
             bool hasTask = false;
-            assigneeHasTask(mTaskTree.mRoot, node->mData.mAssigneeId, hasTask);
+
+            assigneeHasPendingTasks(mTaskTree.mRoot, node->mData.mAssigneeId, hasTask);
             if (!hasTask)
                 out << node->mData;
 
@@ -717,11 +718,24 @@ public:
         printTasksInOrder(mTaskTree.mRoot, out);
     }
 
+    void deleteTasksOfAssignee(Node<Task>*& node, std::string assigneeID) {
+        if (node) {
+            deleteTasksOfAssignee(node->pLeft, assigneeID);
+            
+            if (node->mData.mAssigneeID == assigneeID)
+                mTaskTree.deleteNode(mTaskTree.mRoot, node->mData);
+
+            deleteTasksOfAssignee(node->pRight, assigneeID);
+        }
+    }
+
     void DeleteAssignee(std::string assigneeID) {
         bool hasTask = false;
-        assigneeHasTask(mTaskTree.mRoot, assigneeID, hasTask);
-        if (!hasTask)
+        assigneeHasPendingTasks(mTaskTree.mRoot, assigneeID, hasTask);
+        if (!hasTask) {
+            deleteTasksOfAssignee(mTaskTree.mRoot, assigneeID);
             mAssigneeTree.deleteNode(mAssigneeTree.mRoot, Assignee{ "", "", "", "", idToInt(assigneeID) });
+        }
     }
 
     void fullAssigneeInOrder(Node<Assignee>*& node, std::ostream& out) {
@@ -785,10 +799,12 @@ public:
     void completeTask(int taskID) {
         Node<Task>* completedTask = searchById(taskID);
 
-        if (completedTask != nullptr) {
+        if (completedTask != nullptr && completedTask->mData.bCompleted == false) {
             completedTask->mData.bCompleted = true;
             mTaskTree.numNodes--;
         }
+        else if (completedTask != nullptr && completedTask->mData.bCompleted == true)
+            throw std::runtime_error("Task already completed\n");
         else
             throw std::runtime_error("Task not found\n");
     }
@@ -805,9 +821,15 @@ public:
 
     void deleteTask(int taskID) {
         Node<Task>* taskToDelete = searchById(taskID);
-        if (taskToDelete->mData.bCompleted == false)
-            mTaskTree.numNodes--;
-        mTaskTree.deleteNode(mTaskTree.mRoot, taskToDelete->mData);
+        if (taskToDelete) {
+
+            if (taskToDelete->mData.bCompleted == false)
+                mTaskTree.numNodes--;
+
+            mTaskTree.deleteNode(mTaskTree.mRoot, taskToDelete->mData);
+        }
+        else
+            throw std::runtime_error("Task to delete is not in the tree.\n");
     }
 
     void printAllTasksWithPrio(Node<Task>*& node, int prio, std::ostream& out) {
@@ -915,5 +937,16 @@ public:
         PrintTreeInOrder(mTaskTree.mRoot, out);
     }
 
-};
+    void deleteCompletedTasks(Node<Task>*& node) {
+        if (node) {
+            deleteCompletedTasks(node->pLeft);
+            if (node->mData.bCompleted == true)
+                deleteTask(node->mData.mTaskId);
+            deleteCompletedTasks(node->pRight);
+        }
+    }
 
+    void clearCompletedTasks() {
+        deleteCompletedTasks(mTaskTree.mRoot);
+    }
+};
