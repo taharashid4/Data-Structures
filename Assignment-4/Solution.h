@@ -94,7 +94,7 @@ struct Task {
     std::string mAssigneeID;
     bool bCompleted;
 
-    Task(int id, std::string desc, int prio, std::string ID): mTaskId(id), mDescription(desc), mPrio(prio), mAssigneeID(ID), bCompleted(false) {}
+    Task(int id, std::string desc, int prio, std::string ID, bool comp = false) : mTaskId(id), mDescription(desc), mPrio(prio), mAssigneeID(ID), bCompleted(comp) {}
 
     Task(const Task& rhs) {
         mTaskId = rhs.mTaskId;
@@ -122,10 +122,10 @@ struct Task {
 
     friend ostream& operator<<(ostream& out, const Task& task) {
         out << "Task ID: " << task.mTaskId << ", ";
-		out << "Description: " << task.mDescription << ", ";
-		out << "Priority: " << task.mPrio << ", ";
+        out << "Description: " << task.mDescription << ", ";
+        out << "Priority: " << task.mPrio << ", ";
         out << "Assignee: ";
-		return out;
+        return out;
     }
 };
 
@@ -135,28 +135,28 @@ struct Assignee {
     std::string mAddress;
     std::string mDOB;
     std::string mAssigneeId;
-    int mIntId;    
+    int mIntId;
 
     Assignee(std::string fN, std::string lN, std::string addr,
         std::string dob, int numAssignees) : mFirstName(fN), mLastName(lN), mAddress(addr),
         mDOB(dob) {
-        mAssigneeId = "A";        
+        mAssigneeId = "A";
         if (numAssignees < 10)
             mAssigneeId += "00" + std::to_string(numAssignees);
         else if (numAssignees >= 10 && numAssignees < 100)
             mAssigneeId += "0" + std::to_string(numAssignees);
         else if (numAssignees > 100)
             mAssigneeId += std::to_string(numAssignees);
-        mIntId = numAssignees;       
-    }     
+        mIntId = numAssignees;
+    }
 
     Assignee(const Assignee& rhs) {
         mFirstName = rhs.mFirstName;
-		mLastName = rhs.mLastName;
-		mAddress = rhs.mAddress;
-		mDOB = rhs.mDOB;
-		mAssigneeId = rhs.mAssigneeId;
-		mIntId = rhs.mIntId;
+        mLastName = rhs.mLastName;
+        mAddress = rhs.mAddress;
+        mDOB = rhs.mDOB;
+        mAssigneeId = rhs.mAssigneeId;
+        mIntId = rhs.mIntId;
     }
 
     bool operator<(const Assignee& rhs) const {
@@ -211,7 +211,7 @@ public:
 
 
 
-    void insertNode(Node<T>*& node, T data) {
+    void insertNode(Node<Assignee>*& node, Assignee data) {
         if (node == nullptr) {
             ++numNodes;
             node = new Node<T>(data);
@@ -221,16 +221,16 @@ public:
         else if (data < node->mData) {
             if (node->pLeft == nullptr) {
                 ++numNodes;
-				node->pLeft = new Node<T>(data);
-				node->pLeft->pParent = node;
-				rebalanceTree(node->pLeft);
+                node->pLeft = new Node<T>(data);
+                node->pLeft->pParent = node;
+                rebalanceTree(node->pLeft);
                 return;
-			}
+            }
             else if (node->pLeft != nullptr) {
-				insertNode(node->pLeft, data);		
-			}
+                insertNode(node->pLeft, data);
+            }
         }
-        else if (data >= node->mData) {
+        else if (data > node->mData) {
             if (node->pRight == nullptr) {
                 ++numNodes;
                 node->pRight = new Node<T>(data);
@@ -239,9 +239,68 @@ public:
                 return;
             }
             else if (node->pRight != nullptr) {
-				insertNode(node->pRight, data);
-			}
+                insertNode(node->pRight, data);
+            }
         }        
+    }
+
+    void insertNode(Node<Task>*& node, Task data) {
+        if (node == nullptr) {
+            ++numNodes;
+            node = new Node<T>(data);
+            rebalanceTree(node);
+            return;
+        }
+        else if (data < node->mData) {
+            if (node->pLeft == nullptr) {
+                ++numNodes;
+                node->pLeft = new Node<T>(data);
+                node->pLeft->pParent = node;
+                rebalanceTree(node->pLeft);
+                return;
+            }
+            else if (node->pLeft != nullptr) {
+                insertNode(node->pLeft, data);
+            }
+        }
+        else if (data > node->mData) {
+            if (node->pRight == nullptr) {
+                ++numNodes;
+                node->pRight = new Node<T>(data);
+                node->pRight->pParent = node;
+                rebalanceTree(node->pRight);
+                return;
+            }
+            else if (node->pRight != nullptr) {
+                insertNode(node->pRight, data);
+            }
+        }
+        else if (data == node->mData) {
+            if (data.mTaskId < node->mData.mTaskId) {
+                if (node->pLeft == nullptr) {
+                    ++numNodes;
+                    node->pLeft = new Node<T>(data);
+                    node->pLeft->pParent = node;
+                    rebalanceTree(node->pLeft);
+                    return;
+                }
+                else if (node->pLeft != nullptr) {
+                    insertNode(node->pLeft, data);
+                }
+            }
+            else if (data.mTaskId > node->mData.mTaskId) {
+                if (node->pRight == nullptr) {
+                    ++numNodes;
+                    node->pRight = new Node<T>(data);
+                    node->pRight->pParent = node;
+                    rebalanceTree(node->pRight);
+                    return;
+                }
+                else if (node->pRight != nullptr) {
+                    insertNode(node->pRight, data);
+                }
+            }
+        }
     }
 
     void rotateRight(Node<T>*& node) {
@@ -278,7 +337,7 @@ public:
 
         if (swapNode->pLeft) // Updating the parent of the new subtree
             swapNode->pLeft->pParent = node;
-        
+
         swapNode->pLeft = node;
 
         if (node->pParent) { // Updating the child connection that the old parent had
@@ -301,13 +360,13 @@ public:
 
     void rebalanceTree(Node<T>*& node) {
         if (node == mRoot) {
-			node->bBlack = true;
-			return;
-		}
+            node->bBlack = true;
+            return;
+        }
         else {
             node->bBlack = false; // Make the node red
             Node<T>* parent = node->pParent;
-                        
+
             if (parent->bBlack == false) {
 
                 Node<T>* grandParent = node->pParent->pParent;
@@ -315,13 +374,13 @@ public:
 
 
                 if (uncle && uncle->bBlack == false) { // In the case that the uncle is red and we have a double red
-				    parent->bBlack = true;
-				    uncle->bBlack = true;
+                    parent->bBlack = true;
+                    uncle->bBlack = true;
 
                     if (grandParent != mRoot)
-				        grandParent->bBlack = false;
+                        grandParent->bBlack = false;
 
-				    if (grandParent == mRoot || grandParent->pParent->bBlack == false)
+                    if (grandParent == mRoot || grandParent->pParent->bBlack == false)
                         rebalanceTree(grandParent);
                 }
                 else if (uncle == nullptr || uncle && uncle->bBlack) { // The uncle is black and we have a double red
@@ -332,22 +391,22 @@ public:
                     }
                     else if (node->mData >= parent->mData && parent->mData < grandParent->mData) { // LR Rotation
                         rotateLeft(parent);
-						grandParent->bBlack = false;
+                        grandParent->bBlack = false;
                         parent->bBlack = true;
-						rotateRight(grandParent);
-					}
-					else if (node->mData >= parent->mData && parent->mData > grandParent->mData) { // RR Rotation
-						grandParent->bBlack = false;
-						parent->bBlack = true;
-						rotateLeft(grandParent);
-					}
-					else if (node->mData < parent->mData && parent->mData > grandParent->mData) { // RL Rotation
-						rotateRight(parent);
-						grandParent->bBlack = false;
-						parent->bBlack = true;
-						rotateLeft(grandParent);
+                        rotateRight(grandParent);
                     }
-				}
+                    else if (node->mData >= parent->mData && parent->mData >= grandParent->mData) { // RR Rotation
+                        grandParent->bBlack = false;
+                        parent->bBlack = true;
+                        rotateLeft(grandParent);
+                    }
+                    else if (node->mData < parent->mData && parent->mData > grandParent->mData) { // RL Rotation
+                        rotateRight(parent);
+                        grandParent->bBlack = false;
+                        parent->bBlack = true;
+                        rotateLeft(grandParent);
+                    }
+                }
             }
         }
     }
@@ -376,22 +435,22 @@ public:
             if (node->bBlack == true && ((!node->pLeft && !node->pRight) || (node->pLeft && node->pLeft->bBlack == true) || (node->pRight && node->pRight->bBlack == true)))
                 node->bDoubleBlack = true;
 
-			if (node->pLeft == nullptr && node->pRight != nullptr) { // One child
-            	Node<T>* temp = node;
-            	node = node->pRight;
-            	node->pParent = temp->pParent;
+            if (node->pLeft == nullptr && node->pRight != nullptr) { // One child
+                Node<T>* temp = node;
+                node = node->pRight;
+                node->pParent = temp->pParent;
                 node->pParent->pRight = node;
-            	delete temp;
+                delete temp;
             }
-			else if (node->pLeft != nullptr && node->pRight == nullptr) { // One child
-            	Node<T>* temp = node;
+            else if (node->pLeft != nullptr && node->pRight == nullptr) { // One child
+                Node<T>* temp = node;
                 node = node->pLeft;
-            	node->pParent = temp->pParent;
+                node->pParent = temp->pParent;
                 node->pParent->pLeft = node;
-            	delete temp;
+                delete temp;
             }
 
-			else if (node->pLeft == nullptr && node->pRight == nullptr) { // No children
+            else if (node->pLeft == nullptr && node->pRight == nullptr) { // No children
                 if (node->bBlack == false) {
 
                     if (node && node->pParent->pLeft == node)
@@ -403,22 +462,22 @@ public:
                     node = nullptr;
 
                     return;
-				}
+                }
                 else if (node == mRoot) {
                     delete node;
                     node = nullptr;
                     return;
                 }
             }
-            
+
             balanceDeletion(node, node->bDoubleBlack);
         }
         else {
             Node<T>* highestLeft = node->pLeft;
             while (highestLeft->pRight != nullptr)
-				highestLeft = highestLeft->pRight;
-            
-			T temp = highestLeft->mData;
+                highestLeft = highestLeft->pRight;
+
+            T temp = highestLeft->mData;
             highestLeft->mData = node->mData;
             node->mData = temp;
             makeDeletion(highestLeft);
@@ -442,7 +501,7 @@ public:
             // then we simply perform the LL or RR rotation just like if the one-red-child case where it is on the 
             // outside. If it has only one red child and it's located on the inside subtree, then we perform the LR or RL rotation.
 
-            if ((sibling->pLeft && sibling->pLeft->bBlack == false) || (sibling->pRight && sibling->pRight->bBlack == false)) { 
+            if ((sibling->pLeft && sibling->pLeft->bBlack == false) || (sibling->pRight && sibling->pRight->bBlack == false)) {
 
                 Node<T>* redChild = nullptr;
 
@@ -455,7 +514,7 @@ public:
 
                     rotateRight(parent);
                 }
-                
+
                 else if (sibling->mData < parent->mData && (sibling->pRight && sibling->pRight->bBlack == false)) { // LR rotation
                     sibling->pRight->bBlack = true;
                     sibling->bBlack = parent->bBlack;
@@ -465,7 +524,7 @@ public:
 
                 }
 
-				else if (sibling->mData > parent->mData && (sibling->pRight && sibling->pRight->bBlack == false)) { // RR rotation
+                else if (sibling->mData > parent->mData && (sibling->pRight && sibling->pRight->bBlack == false)) { // RR rotation
 
                     sibling->pRight->bBlack = true;
                     sibling->bBlack = parent->bBlack;
@@ -474,12 +533,12 @@ public:
                     rotateLeft(parent);
                 }
 
-				else if (sibling->mData > parent->mData && (sibling->pLeft && sibling->pLeft->bBlack == false)) { // RL rotation
+                else if (sibling->mData > parent->mData && (sibling->pLeft && sibling->pLeft->bBlack == false)) { // RL rotation
                     sibling->pLeft->bBlack = true;
                     sibling->bBlack = parent->bBlack;
                     parent->bBlack = true;
-                    rotateRight(sibling);                    				
-					rotateLeft(parent);
+                    rotateRight(sibling);
+                    rotateLeft(parent);
                 }
             }
 
@@ -488,27 +547,27 @@ public:
                 sibling->bBlack = false;
                 if (parent->bBlack == false) // Case 2a: The parent is red
                     parent->bBlack = true;
-				else if (parent->bBlack && parent != mRoot) // Case 2b: The parent is black
+                else if (parent->bBlack && parent != mRoot) // Case 2b: The parent is black
                     resolveDoubleBlack(parent);
             }
         }
         else {
             // Case 3: The sibling of the deleted node is red
-			sibling->bBlack = true;
-			parent->bBlack = false;
+            sibling->bBlack = true;
+            parent->bBlack = false;
 
-			if (sibling->mData < parent->mData)
-				rotateRight(parent);
-			else
-				rotateLeft(parent);
+            if (sibling->mData < parent->mData)
+                rotateRight(parent);
+            else
+                rotateLeft(parent);
 
-			resolveDoubleBlack(node);
+            resolveDoubleBlack(node);
         }
 
         if (node == mRoot)
-			node->bBlack = true;
+            node->bBlack = true;
 
-        else {
+        else if (node && node->bDoubleBlack) {
             if (node && node->pParent->pLeft == node)
                 node->pParent->pLeft = nullptr;
             else if (node && node->pParent->pRight == node)
@@ -526,8 +585,8 @@ public:
         else if (node->mData > data)
             return search(node->pLeft, data);
         else if (node->mData == data)
-			return true;
-    }            
+            return true;
+    }
 };
 
 int idToInt(std::string assigneeID) {
@@ -544,17 +603,17 @@ int idToInt(std::string assigneeID) {
 }
 
 class taskManagementSystem {
+public:
     RedBlackTree<Task> mTaskTree;
     RedBlackTree<Assignee> mAssigneeTree;
 
-public:
     taskManagementSystem() : mTaskTree(), mAssigneeTree() {}
 
 
 
     void addAssignee(std::string fN, std::string lN, std::string addr, std::string dob) {
         mAssigneeTree.insert(Assignee{ fN, lN, addr, dob, mAssigneeTree.numNodes + 1 });
-	}
+    }
 
     void displayID(Node<Assignee>*& node, std::string ID, std::ostream& out) {
         if (node == nullptr) {
@@ -586,14 +645,14 @@ public:
     }
 
     void addTask(int id, std::string desc, int prio, std::string assigneeID) {
-		mTaskTree.insert(Task{ id, desc, prio, assigneeID });
-	}
+        mTaskTree.insert(Task{ id, desc, prio, assigneeID});
+    }
 
     void assigneeHasTask(Node<Task>*& node, std::string assigneeID, bool& hasTask) {
         if (node) {
             assigneeHasTask(node->pLeft, assigneeID, hasTask);
             if (node->mData.mAssigneeID == assigneeID)
-				hasTask = true;
+                hasTask = true;
             assigneeHasTask(node->pRight, assigneeID, hasTask);
         }
     }
@@ -619,8 +678,8 @@ public:
         if (node) {
             shiftTasksInOrder(node->pLeft, leftAssignee, rightAssignee);
 
-            if (node->mData.mAssigneeID == leftAssignee)
-				node->mData.mAssigneeID = rightAssignee;
+            if (node->mData.mAssigneeID == leftAssignee && node->mData.bCompleted == false)
+                node->mData.mAssigneeID = rightAssignee;
 
             shiftTasksInOrder(node->pRight, leftAssignee, rightAssignee);
         }
@@ -634,11 +693,11 @@ public:
         Node<Assignee>* traverse = mAssigneeTree.mRoot;
         while (traverse != nullptr) {
             if (traverse->mData.mAssigneeId < id)
-				traverse = traverse->pRight;
-			else if (traverse->mData.mAssigneeId > id)
-				traverse = traverse->pLeft;
-			else if (traverse->mData.mAssigneeId == id)
-				return traverse->mData.mFirstName;
+                traverse = traverse->pRight;
+            else if (traverse->mData.mAssigneeId > id)
+                traverse = traverse->pLeft;
+            else if (traverse->mData.mAssigneeId == id)
+                return traverse->mData.mFirstName;
         }
         throw std::runtime_error("Assignee not found\n");
     }
@@ -661,9 +720,9 @@ public:
     void DeleteAssignee(std::string assigneeID) {
         bool hasTask = false;
         assigneeHasTask(mTaskTree.mRoot, assigneeID, hasTask);
-		if (!hasTask)
-            mAssigneeTree.deleteNode(mAssigneeTree.mRoot, Assignee{ "", "", "", "", idToInt(assigneeID)});
-	}
+        if (!hasTask)
+            mAssigneeTree.deleteNode(mAssigneeTree.mRoot, Assignee{ "", "", "", "", idToInt(assigneeID) });
+    }
 
     void fullAssigneeInOrder(Node<Assignee>*& node, std::ostream& out) {
         if (node) {
@@ -708,8 +767,8 @@ public:
                 continue;
             }
             else if (curr->mData.mTaskId == taskID) {
-				return curr;
-			}
+                return curr;
+            }
 
             if (curr->pLeft) {
                 nodeQueue.enqueue(curr->pLeft);
@@ -717,7 +776,7 @@ public:
 
             if (curr->pRight) {
                 nodeQueue.enqueue(curr->pRight);
-            }            
+            }
         }
 
         cout << '\n';
@@ -726,57 +785,69 @@ public:
     void completeTask(int taskID) {
         Node<Task>* completedTask = searchById(taskID);
 
-        if (completedTask)
+        if (completedTask != nullptr) {
             completedTask->mData.bCompleted = true;
-		else
+            mTaskTree.numNodes--;
+        }
+        else
             throw std::runtime_error("Task not found\n");
     }
 
     void updateTaskPriority(int taskID, int newPrio) {
         Node<Task>* swapPrio = searchById(taskID);
-        if (swapPrio) {
+        if (swapPrio && swapPrio->mData.bCompleted == false) {
             Task temp = swapPrio->mData;
             mTaskTree.deleteNode(mTaskTree.mRoot, swapPrio->mData);
             temp.mPrio = newPrio;
-            addTask(temp.mTaskId, temp.mDescription, temp.mPrio, temp.mAssigneeID);
+            mTaskTree.insert(Task{ temp.mTaskId, temp.mDescription, temp.mPrio, temp.mAssigneeID, temp.bCompleted});
         }
     }
 
     void deleteTask(int taskID) {
         Node<Task>* taskToDelete = searchById(taskID);
-		mTaskTree.deleteNode(mTaskTree.mRoot, taskToDelete->mData);
-	}
+        if (taskToDelete->mData.bCompleted == false)
+            mTaskTree.numNodes--;
+        mTaskTree.deleteNode(mTaskTree.mRoot, taskToDelete->mData);
+    }
 
     void printAllTasksWithPrio(Node<Task>*& node, int prio, std::ostream& out) {
         if (node) {
-			printAllTasksWithPrio(node->pLeft, prio, out);
+            printAllTasksWithPrio(node->pLeft, prio, out);
 
-			if (node->mData.mPrio == prio)
+            if (node->mData.mPrio == prio && node->mData.bCompleted == false)
                 out << "Highest Priority Task: " << node->mData << getAssigneeName(node->mData.mAssigneeID) << " (" << node->mData.mAssigneeID << ")\n";
 
-			printAllTasksWithPrio(node->pRight, prio, out);
-		}
-	}
+            printAllTasksWithPrio(node->pRight, prio, out);
+        }
+    }
+
+    void findHighestPrio(Node<Task>*& node, int& prio) {
+        if (node) {
+            findHighestPrio(node->pLeft, prio);
+
+            if (node->mData.mPrio < prio && node->mData.bCompleted == false)
+                prio = node->mData.mPrio;
+
+            findHighestPrio(node->pRight, prio);
+        }
+    }
 
     void findHighestPriorityTask(std::ostream& out) {
         if (mTaskTree.mRoot) {
-            Node<Task>* highestPrio = mTaskTree.mRoot;
-            while (highestPrio->pLeft != nullptr) {
-                highestPrio = highestPrio->pLeft;
-            }
-
-            int requiredPrio = highestPrio->mData.mPrio;
-            printAllTasksWithPrio(mTaskTree.mRoot, requiredPrio, out);
+            int highestPrio = INT_MAX;
+            
+            findHighestPrio(mTaskTree.mRoot, highestPrio);
+            printAllTasksWithPrio(mTaskTree.mRoot, highestPrio, out);
         }
-		else
-			throw std::runtime_error("No tasks\n");
+        else
+            throw std::runtime_error("No tasks\n");
     }
 
     void inOrderAssigneeID(Node<Task>*& node, std::string AssigneeID, std::ostream& out) {
         if (node) {
             inOrderAssigneeID(node->pLeft, AssigneeID, out);
 
-            if (node->mData.mAssigneeID == AssigneeID)
+            if (node->mData.mAssigneeID == AssigneeID && node->mData.bCompleted == false)
                 out << node->mData << getAssigneeName(node->mData.mAssigneeID) << " (" << node->mData.mAssigneeID << ")\n";
 
             inOrderAssigneeID(node->pRight, AssigneeID, out);
@@ -797,7 +868,7 @@ public:
             printCompletedTasks(node->pLeft, out);
 
             if (node->mData.bCompleted == true)
-				out << node->mData << getAssigneeName(node->mData.mAssigneeID) << " (" << node->mData.mAssigneeID << ")\n";
+                out << node->mData << getAssigneeName(node->mData.mAssigneeID) << " (" << node->mData.mAssigneeID << ")\n";
 
             printCompletedTasks(node->pRight, out);
         }
@@ -812,28 +883,30 @@ public:
         if (node) {
             searchTasksByPriorityRange(node->pLeft, low, high, out);
 
-			if (node->mData.mPrio >= low && node->mData.mPrio <= high)
-				out << node->mData << getAssigneeName(node->mData.mAssigneeID) << " (" << node->mData.mAssigneeID << ")\n";
+            if (node->mData.mPrio >= low && node->mData.mPrio <= high && node->mData.bCompleted == false)
+                out << node->mData << getAssigneeName(node->mData.mAssigneeID) << " (" << node->mData.mAssigneeID << ")\n";
 
-			searchTasksByPriorityRange(node->pRight, low, high, out);
+            searchTasksByPriorityRange(node->pRight, low, high, out);
         }
     }
 
     void searchTasksByPriorityRange(int low, int high, std::ostream& out) {
-        out << "Tasks within Priority Range (1 to 2):\n";
+        out << "Tasks within Priority Range (" << low << " to " << high << "):\n";
         searchTasksByPriorityRange(mTaskTree.mRoot, low, high, out);
     }
 
     void PrintTreeInOrder(Node<Task>*& node, std::ostream& out) {
         if (node) {
             PrintTreeInOrder(node->pLeft, out);
-            
-            out << node->mData.mTaskId << " (";
-            if (node->bBlack == true)
-                out << "black)\n";
-            else
-                out << "red)\n";
-			
+
+            if (node->mData.bCompleted == false) {
+                out << node->mData.mTaskId << " (";
+                if (node->bBlack == true)
+                    out << "black)\n";
+                else
+                    out << "red)\n";
+            }
+
             PrintTreeInOrder(node->pRight, out);
         }
     }
